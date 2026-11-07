@@ -319,7 +319,7 @@
         <hearing-protection-attenuation-attack-time value="900"/>
         <hearing-protection-attenuation-release-time value="1600"/>
         <volume-leveler-enable value="true"/>
-        <volume-leveler-amount value="2"/>
+        <volume-leveler-amount value="6"/>
         <volume-leveler-in-target value="-256"/>
         <volume-leveler-out-target value="-256"/>
         <graphic-equalizer-enable value="true"/>
@@ -420,7 +420,7 @@
         <hearing-protection-attenuation-attack-time value="900"/>
         <hearing-protection-attenuation-release-time value="1600"/>
         <volume-leveler-enable value="false"/>
-        <volume-leveler-amount value="2"/>
+        <volume-leveler-amount value="6"/>
         <volume-leveler-in-target value="-256"/>
         <volume-leveler-out-target value="-256"/>
         <graphic-equalizer-enable value="true"/>
@@ -521,7 +521,7 @@
         <hearing-protection-attenuation-attack-time value="900"/>
         <hearing-protection-attenuation-release-time value="1600"/>
         <volume-leveler-enable value="false"/>
-        <volume-leveler-amount value="2"/>
+        <volume-leveler-amount value="6"/>
         <volume-leveler-in-target value="-256"/>
         <volume-leveler-out-target value="-256"/>
         <graphic-equalizer-enable value="true"/>
