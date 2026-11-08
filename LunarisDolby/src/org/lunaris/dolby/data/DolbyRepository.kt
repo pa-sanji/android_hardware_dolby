@@ -81,12 +81,40 @@ class DolbyRepository(private val context: Context) : AutoCloseable {
     }
 
     private fun shouldBypassDolbyProcessing(): Boolean {
-        return communicationBypassForced || isCommunicationMode()
+        return communicationBypassForced || gameBypassForced || isCommunicationMode()
     }
 
     fun setCommunicationBypassActive(active: Boolean) {
         communicationBypassForced = active
         DolbyConstants.dlog(TAG, "Communication bypass active: $active")
+    }
+
+    /**
+     * Temporary Dolby bypass while a game audio stream is active.
+     *
+     * Unlike [setDolbyEnabled] this does not change the saved user preference,
+     * so music/video playback gets the configured Dolby profile back as soon as
+     * the game stream stops. It keeps the software DAP out of the game audio
+     * path where its CPU cost causes underruns once the CPU is thermally
+     * throttled.
+     */
+    fun setGameBypassActive(active: Boolean) {
+        if (gameBypassForced == active) return
+        gameBypassForced = active
+        DolbyConstants.dlog(TAG, "Game bypass active: $active")
+        if (isReleased) return
+
+        try {
+            checkEffect()
+            val savedEnabled = defaultPrefs.getBoolean(DolbyConstants.PREF_ENABLE, true)
+            val runtimeEnabled = savedEnabled && !shouldBypassDolbyProcessing()
+            dolbyEffect.dsOn = runtimeEnabled
+            if (runtimeEnabled) {
+                restoreSavedProfileIfNeeded()
+            }
+        } catch (e: Exception) {
+            DolbyConstants.dlog(TAG, "Error applying game bypass: ${e.message}")
+        }
     }
 
     private fun restoreSavedProfileIfNeeded() {
@@ -959,6 +987,9 @@ class DolbyRepository(private val context: Context) : AutoCloseable {
 
         @Volatile
         private var communicationBypassForced = false
+
+        @Volatile
+        private var gameBypassForced = false
         
         private const val BASS_GAIN_MULTIPLIER = 1.4f
         private const val MID_GAIN_MULTIPLIER = 1.3f

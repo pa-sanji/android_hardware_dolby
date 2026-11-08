@@ -106,6 +106,15 @@ class DolbyEffectService : Service() {
 
     private val playbackCallback = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>?) {
+            // Keep Dolby for music/video, but take the software DAP out of the
+            // game audio path. The effect is re-enabled as soon as the game
+            // stream stops. The software DAP runs on the CPU and otherwise
+            // misses the audio deadline once the device is thermally throttled.
+            val gameActive = configs?.any {
+                it.isActive && it.audioAttributes.usage == AudioAttributes.USAGE_GAME
+            } == true
+            repository.setGameBypassActive(gameActive)
+
             if (communicationBypassActive) {
                 Log.d(TAG, "Skipping playback-triggered Dolby restore during communication bypass")
                 return
