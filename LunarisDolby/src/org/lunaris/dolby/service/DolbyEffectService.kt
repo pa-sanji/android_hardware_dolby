@@ -5,7 +5,10 @@
 
 package org.lunaris.dolby.service
 
+import android.app.GameManager
 import android.app.Service
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -110,9 +113,12 @@ class DolbyEffectService : Service() {
             // game audio path. The effect is re-enabled as soon as the game
             // stream stops. The software DAP runs on the CPU and otherwise
             // misses the audio deadline once the device is thermally throttled.
-            val gameActive = configs?.any {
+            // Some games (e.g. com.firsttouchgames.dls7) play through
+            // USAGE_MEDIA instead of USAGE_GAME, so also check whether the
+            // foreground app is registered as a game with GameManager.
+            val gameActive = (configs?.any {
                 it.isActive && it.audioAttributes.usage == AudioAttributes.USAGE_GAME
-            } == true
+            } == true) || isGameForeground()
             repository.setGameBypassActive(gameActive)
 
             if (communicationBypassActive) {
@@ -124,6 +130,34 @@ class DolbyEffectService : Service() {
             if (isActive) {
                 repository.applySavedState()
             }
+        }
+    }
+
+    /**
+     * Some games play through USAGE_MEDIA, so AudioPlaybackConfiguration alone
+     * misses them. Ask GameManager whether the current foreground app is a
+     * registered game and keep the software DAP out of its audio path.
+     */
+    private fun isGameForeground(): Boolean {
+        return try {
+            val usageStatsManager =
+                getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val now = System.currentTimeMillis()
+            val events = usageStatsManager.queryEvents(now - 1000, now)
+            val event = UsageEvents.Event()
+            var foreground: String? = null
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                if (event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                    foreground = event.packageName
+                }
+            }
+            val packageName = foreground ?: return false
+            val gameManager = getSystemService(Context.GAME_SERVICE) as GameManager
+            gameManager.getGameMode(packageName) != GameManager.GAME_MODE_UNSUPPORTED
+        } catch (e: Exception) {
+            Log.d(TAG, "Unable to detect foreground game: ${e.message}")
+            false
         }
     }
 
